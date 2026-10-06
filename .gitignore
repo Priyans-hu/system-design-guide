@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+# optional private notes, never committed
+data/work.js
+# work in progress, never committed
+.drafts/
