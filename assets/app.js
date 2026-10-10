@@ -493,6 +493,18 @@
     return rows ? `${section('related', 'Related')}<div class="flex flex-col gap-3 text-sm">${rows}</div>` : '';
   };
   const sourceRow = s => `<li class="card flex items-start gap-3 p-3.5">${icon('external-link', 'size-4 mt-0.5 text-ink-3')}<div class="min-w-0"><a class="link text-sm font-medium" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.t)}</a><p class="text-xs text-ink-3">${esc(s.by || '')}</p></div></li>`;
+  const flowHTML = steps => `<div class="flow">${(steps || []).map((s, k) => `${k ? `<span class="text-ink-3">${icon('arrow-right', 'size-4')}</span>` : ''}<div class="flow-step"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}</div>`;
+
+  /* optional c.levels: [{ name, load, flow, what, breaks }], simplest design first; the last level is the HLD below it */
+  function levelsHTML(c) {
+    const L = c.levels || [];
+    if (!L.length) return '';
+    return `${section('levels', 'Level 1 to final', `Start with the simplest design that works, then fix whatever breaks first. Level ${L.length} is the architecture mapped below.`)}
+      <ol class="flex flex-col gap-3">${L.map((l, k) => `<li class="card p-5 sm:p-6">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2"><span class="num grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold ${k === L.length - 1 ? 'bg-accent text-accent-ink' : 'bg-accent-soft text-accent'}">${k + 1}</span><h3 class="title-md min-w-0">${l.name}</h3>${l.load ? `<span class="chip h-auto py-1 leading-snug whitespace-normal">${l.load}</span>` : ''}</div>
+        ${(l.flow || []).length ? `<div class="mt-4 rounded-xl bg-muted p-3">${flowHTML(l.flow)}</div>` : ''}
+        <div class="usage mt-4"><p><span class="k k-use">How</span>${l.what}</p>${l.breaks ? `<p><span class="k k-avoid">Breaks</span>${l.breaks}</p>` : ''}</div></li>`).join('')}</ol>`;
+  }
 
   function hldHTML(c) {
     const D = (window.HUB_HLD || {})[c.id];
@@ -546,9 +558,10 @@
     const list = arr => `<ul class="points rich">${(arr || []).map(x => `<li>${x}</li>`).join('')}</ul>`;
     return `${back(to('cases'), 'All case studies')}
       ${head(esc(c.kind), esc(c.name), c.tagline, `<div class="flex flex-wrap gap-2">${(c.scale || []).map(s => `<span class="chip h-auto py-1.5 leading-snug whitespace-normal">${s}</span>`).join('')}</div>`)}
+      ${levelsHTML(c)}
       ${hldHTML(c)}
       ${section('flow', 'The main request path')}
-      <div class="card p-4 sm:p-5"><div class="flow">${(c.flow || []).map((s, k) => `${k ? `<span class="text-ink-3">${icon('arrow-right', 'size-4')}</span>` : ''}<div class="flow-step"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}</div></div>
+      <div class="card p-4 sm:p-5">${flowHTML(c.flow)}</div>
       ${section('requirements', 'Requirements')}
       <div class="grid gap-3 sm:grid-cols-2"><div class="card p-5"><p class="eyebrow mb-3">Functional</p>${list(c.requirements && c.requirements.functional)}</div><div class="card p-5"><p class="eyebrow mb-3">Non-functional</p>${list(c.requirements && c.requirements.nonFunctional)}</div></div>
       ${section('building-blocks', 'Building blocks')}
@@ -1159,7 +1172,7 @@
       add('Track', t.title, t.why, to('tracks', t.id));
       t.topics.forEach(x => add('Topic', x.title, `${t.short} track`, topicHome.get(x.id), `${x.what || ''} ${(x.points || []).join(' ')}`));
     });
-    CASES.forEach(c => add('Case study', c.name, c.kind, to('cases', c.id), `${c.tagline} ${(c.components || []).map(x => x.name).join(' ')}`));
+    CASES.forEach(c => add('Case study', c.name, c.kind, to('cases', c.id), `${c.tagline} ${(c.components || []).map(x => x.name).join(' ')} ${(c.levels || []).map(l => l.name).join(' ')}`));
     DBT.forEach(t => add('Database', t.name, `Database type · ${t.family}`, to('databases', t.id), `${t.summary} ${Object.values(t.glance || {}).join(' ')} ${(t.examples || []).map(e => e[0]).join(' ')} ${t.id}`));
     GUIDES.forEach(g => add('Trade-off', g.title, g.question, to('tradeoffs', g.id), `${g.area} ${g.summary || ''} ${g.options.map(o => `${o.name} ${o.tools || ''}`).join(' ')}`));
     DEEP.forEach(d => add('Pattern', d.title, `Deep dive · ${d.family}`, to('patterns', d.id), `${d.summary} ${DEEP_OF.filter(x => x[1] === d.id).map(x => x[0]).join(' ')} ${(d.alternatives || []).map(a => a[1]).join(' ')}`));
